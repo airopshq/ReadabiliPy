@@ -3,12 +3,11 @@ from bs4 import Comment, Doctype, NavigableString
 from .text import normalise_text
 
 
-def elements_to_delete():
+def elements_to_delete(preserve_images=False):
     """Elements that will be deleted together with their contents."""
     html5_form_elements = ['button', 'datalist', 'fieldset', 'form', 'input',
                            'label', 'legend', 'meter', 'optgroup', 'option',
                            'output', 'progress', 'select', 'textarea']
-    html5_image_elements = ['area', 'img', 'map', 'picture', 'source']
     html5_media_elements = ['audio', 'track', 'video']
     html5_embedded_elements = ['embed', 'iframe', 'math', 'object', 'param', 'svg']
     html5_interactive_elements = ['details', 'dialog', 'summary']
@@ -17,21 +16,26 @@ def elements_to_delete():
     html5_formatting_elements = ['style']
     html5_navigation_elements = ['nav']
 
-    elements = html5_form_elements + html5_image_elements \
+    elements = html5_form_elements \
         + html5_media_elements + html5_embedded_elements \
         + html5_interactive_elements + html5_scripting_elements \
         + html5_data_elements + html5_formatting_elements \
         + html5_navigation_elements
 
+    if not preserve_images:
+        elements += image_elements()
+
     return elements
 
 
-def elements_to_replace_with_contents():
+def elements_to_replace_with_contents(preserve_links=False):
     """Elements that we will discard while keeping their contents."""
-    elements = ['a', 'abbr', 'address', 'b', 'bdi', 'bdo', 'center', 'cite',
+    elements = ['abbr', 'address', 'b', 'bdi', 'bdo', 'center', 'cite',
                 'code', 'del', 'dfn', 'em', 'i', 'ins', 'kbs', 'mark',
                 'rb', 'ruby', 'rp', 'rt', 'rtc', 's', 'samp', 'small', 'span',
                 'strong', 'time', 'u', 'var', 'wbr']
+    if not preserve_links:
+        elements += link_elements()
     return elements
 
 
@@ -65,6 +69,11 @@ def metadata_elements():
 def linebreak_elements():
     return ['br', 'hr']
 
+def image_elements():
+    return ['area', 'img', 'map', 'picture', 'source']
+
+def link_elements():
+    return ['a']
 
 def known_elements():
     """All elements that we know by name."""
@@ -94,18 +103,18 @@ def strip_attributes(soup):
         element.attrs.pop("style", None)
 
 
-def remove_blacklist(soup):
+def remove_blacklist(soup, preserve_images=False):
     """Remove all blacklisted elements."""
-    for element_name in elements_to_delete():
+    for element_name in elements_to_delete(preserve_images):
         for element in soup.find_all(element_name):
             element.decompose()
 
 
-def unwrap_elements(soup):
+def unwrap_elements(soup, preserve_links=False):
     """Flatten all elements where we are only interested in their contents."""
     # We do not need to unwrap from the "bottom up" as all we are doing is replacing elements with their contents so
     # we will still find child elements after their parent has been unwrapped.
-    for element_name in elements_to_replace_with_contents():
+    for element_name in elements_to_replace_with_contents(preserve_links):
         for element in soup.find_all(element_name):
             element.unwrap()
 
@@ -291,19 +300,24 @@ def wrap_bare_text(soup):
             element.replace_with(p_element)
 
 
-def recursively_prune_elements(soup):
-    """Recursively prune out any elements which have no children or only zero-length children."""
+def recursively_prune_elements(soup, preserve_images=False):
+    elements_not_to_touch = []
+    if preserve_images:
+        elements_not_to_touch = image_elements()
+
+    """Recursively prune out any elements which have no children or only zero-length children, excluding <img> elements."""
     def single_replace():
         n_removed = 0
-        # Remove elements with no children
-        for element in soup.find_all(lambda elem: len(list(elem.children)) == 0):
+        # Remove elements with no children, excluding <img> tags
+        for element in soup.find_all(lambda elem: elem.name not in elements_not_to_touch and len(list(elem.children)) == 0):
             element.decompose()
             n_removed += 1
-        # Remove elements with only zero-length children
-        for element in soup.find_all(lambda elem: sum(len(c) for c in elem.children) == 0):
+        # Remove elements with only zero-length children, excluding <img> tags
+        for element in soup.find_all(lambda elem: elem.name not in elements_not_to_touch and sum(len(c) for c in elem.children) == 0):
             element.decompose()
             n_removed += 1
         return n_removed
+
     # Repeatedly apply single_replace() until no elements are being removed
     while single_replace():
         pass

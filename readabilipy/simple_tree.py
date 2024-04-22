@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from .simplifiers.html import consolidate_text, insert_paragraph_breaks, normalise_strings, process_special_elements, process_unknown_elements, recursively_prune_elements, remove_blacklist, remove_empty_strings_and_elements, remove_metadata, strip_attributes, structural_elements, unnest_paragraphs, unwrap_elements, wrap_bare_text
 
 
-def simple_tree_from_html_string(html):
+def simple_tree_from_html_string(html, preserve_images=False, preserve_links=False):
     """Turn input HTML into a cleaned parsed tree."""
     # Insert space into non-spaced comments so that html5lib can interpret them correctly
     html = html.replace("<!---->", "<!-- -->")
@@ -18,10 +18,10 @@ def simple_tree_from_html_string(html):
     strip_attributes(soup)
 
     # Remove blacklisted elements
-    remove_blacklist(soup)
+    remove_blacklist(soup, preserve_images)
 
     # Unwrap elements where we want to keep the text but drop the containing tag
-    unwrap_elements(soup)
+    unwrap_elements(soup, preserve_links)
 
     # Process elements with special innerText handling
     process_special_elements(soup)
@@ -55,7 +55,7 @@ def simple_tree_from_html_string(html):
     normalise_strings(soup)
 
     # Recursively replace any elements which have no children or only zero-length children
-    recursively_prune_elements(soup)
+    recursively_prune_elements(soup, preserve_images)
 
     # Finally ensure that the whole tree is wrapped in a div
     # Strip out enclosing elements that cannot live inside a div
