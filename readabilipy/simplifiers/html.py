@@ -70,7 +70,7 @@ def linebreak_elements():
     return ['br', 'hr']
 
 def image_elements():
-    return ['area', 'img', 'map', 'picture', 'source']
+    return ['area', 'img', 'map', 'picture', 'source', 'figure']
 
 def link_elements():
     return ['a']
@@ -305,17 +305,20 @@ def recursively_prune_elements(soup, preserve_images=False):
     if preserve_images:
         elements_not_to_touch = image_elements()
 
-    """Recursively prune out any elements which have no children or only zero-length children, excluding <img> elements."""
     def single_replace():
         n_removed = 0
-        # Remove elements with no children, excluding <img> tags
-        for element in soup.find_all(lambda elem: elem.name not in elements_not_to_touch and len(list(elem.children)) == 0):
-            element.decompose()
-            n_removed += 1
-        # Remove elements with only zero-length children, excluding <img> tags
-        for element in soup.find_all(lambda elem: elem.name not in elements_not_to_touch and sum(len(c) for c in elem.children) == 0):
-            element.decompose()
-            n_removed += 1
+        # Check each element and ensure it's safe to remove
+        for element in soup.find_all():
+            # Skip if this element or any child is in the preserve list
+            if element.name in elements_not_to_touch or any(
+                child.name in elements_not_to_touch for child in element.find_all(recursive=True)
+            ):
+                continue
+
+            # Check if element has no children or only zero-length children and it's safe to remove
+            if len(list(element.children)) == 0 or sum(len(str(c)) for c in element.children) == 0:
+                element.decompose()
+                n_removed += 1
         return n_removed
 
     # Repeatedly apply single_replace() until no elements are being removed
