@@ -52,7 +52,7 @@ def block_level_whitelist():
                 'div', 'dl', 'dt', 'dd', 'figure', 'figcaption', 'footer',
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'li', 'main',
                 'ol', 'p', 'pre', 'section', 'table', 'tbody', 'thead',
-                'tfoot', 'tr', 'td', 'th', 'ul']
+                'tfoot', 'tr', 'td', 'th', 'ul', 'a']
     return elements
 
 

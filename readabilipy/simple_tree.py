@@ -1,4 +1,5 @@
 """Turn input HTML into a cleaned parsed tree."""
+import re
 from bs4 import BeautifulSoup
 from .simplifiers.html import consolidate_text, insert_paragraph_breaks, normalise_strings, process_special_elements, process_unknown_elements, recursively_prune_elements, remove_blacklist, remove_empty_strings_and_elements, remove_metadata, strip_attributes, structural_elements, unnest_paragraphs, unwrap_elements, wrap_bare_text
 
@@ -56,6 +57,10 @@ def simple_tree_from_html_string(html, preserve_images=False, preserve_links=Fal
 
     # Recursively replace any elements which have no children or only zero-length children
     recursively_prune_elements(soup, preserve_images)
+
+    # hackish fix for links getting wrapped in paragraphs
+    html_output = re.sub(r'<\/p><a(.*?)<\/a><p>', r' <a\1</a> ', str(soup))
+    soup = BeautifulSoup(html_output, "html5lib")
 
     # Finally ensure that the whole tree is wrapped in a div
     # Strip out enclosing elements that cannot live inside a div
