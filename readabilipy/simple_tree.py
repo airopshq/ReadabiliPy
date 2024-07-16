@@ -58,20 +58,21 @@ def simple_tree_from_html_string(html, preserve_images=False, preserve_links=Fal
     # Recursively replace any elements which have no children or only zero-length children
     recursively_prune_elements(soup, preserve_images)
 
-    # hackish fix for links getting wrapped in paragraphs
-    html_output = re.sub(r'<\/p><a(.*?)<\/a><p>', r' <a\1</a> ', str(soup))
-    html_output = re.sub(r'<p><a(.*?)<\/a><p>(.*?)<\/p><\/p>', r'<p><a\1</a> \2</p>', html_output)
-    soup = BeautifulSoup(html_output, "html5lib")
-
     # Finally ensure that the whole tree is wrapped in a div
     # Strip out enclosing elements that cannot live inside a div
     while soup.contents and (soup.contents[0].name in structural_elements()):
         soup.contents[0].unwrap()
-    # If the outermost tag is a single div then return it
+    # If the outermost tag is a single div then it's ok
     if len(soup.contents) == 1 and soup.contents[0].name == "div":
-        return soup
+        pass
+    else:
+        # ... otherwise wrap in a div and return that
+        root = soup.new_tag("div")
+        root.append(soup)
+        soup = root
 
-    # ... otherwise wrap in a div and return that
-    root = soup.new_tag("div")
-    root.append(soup)
-    return root
+    # hackish fix for links getting wrapped in paragraphs
+    html_output = re.sub(r'<\/p><a(.*?)<\/a><p>', r' <a\1</a> ', str(soup))
+    html_output = re.sub(r'<p><a(.*?)<\/a><p>(.*?)<\/p><\/p>', r'<p><a\1</a> \2</p>', html_output)
+
+    return html_output
