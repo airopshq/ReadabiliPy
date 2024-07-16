@@ -60,6 +60,7 @@ def simple_tree_from_html_string(html, preserve_images=False, preserve_links=Fal
 
     # hackish fix for links getting wrapped in paragraphs
     html_output = re.sub(r'<\/p><a(.*?)<\/a><p>', r' <a\1</a> ', str(soup))
+    html_output = re.sub(r'<p><a(.*?)<\/a><p>(.*?)<\/p><\/p>', r'<p><a\1</a> \2</p>', html_output)
     soup = BeautifulSoup(html_output, "html5lib")
 
     # Finally ensure that the whole tree is wrapped in a div
